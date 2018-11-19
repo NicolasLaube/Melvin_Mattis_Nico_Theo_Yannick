@@ -17,9 +17,9 @@ class Perceptron:
         """
         vect = numpy.copy(vector)
         for loop in range(len(self.layers)-1):
-            vect = self.weights[loop]*vect
+            vect = numpy.dot(self.weights[loop],vect) + self.biases[loop]
         return vect
-    
+
     def backward_propagation(self, vector, expected):
         pass
 
