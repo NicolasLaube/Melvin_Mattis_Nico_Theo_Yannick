@@ -81,45 +81,40 @@ class MultiPerceptron:
             error_weights[layer] = numpy.dot(error_biases[layer+1], numpy.transpose(activations[layer]))
         return error_weights, error_biases
 
-    def training(self, learning_rate, vectors, expecteds, nb_iteration, epoch):
+    def training(self, learning_rate, vectors, expected, nb_iteration, epoch):
         """
         :param learning_rate:
         :param vectors: list of vectors
-        :param expecteds: the list of 0 or 1 if there is a match or not
+        :param expected: the list of 0 or 1 if there is a match or not
+        :param nb_iteration: number samples used simultaneously
+        :param epoch: number of steps made
         :return: This function computes the weights and biases for the next step determination
         of the minimum of cost function
         """
         cost_list = numpy.zeros([epoch])
         for k in range(epoch):
-            #loop till we obtained the minimum
+            # loop till we obtained the minimum
             delta_weights = numpy.zeros([])
-            delta_biaises = numpy.zeros([])
+            delta_biases = numpy.zeros([])
             cost = 0
             for i in range(nb_iteration):
                 # loop to avoid the zigzags
-
                 chosen_sample = random.randint(0, len(vectors) - 1)
-                cost_i = cost_function(expecteds[chosen_sample], self.forward_propagation(vectors[chosen_sample]))
-                delta_weights_i , delta_biaises_i = self.backward_propagation(vectors[chosen_sample],
-                                                                              expecteds[chosen_sample])
-                delta_biaises += delta_biaises_i
-                delta_weights += delta_biaises_i
+                cost_i = cost_function(expected[chosen_sample], self.forward_propagation(vectors[chosen_sample]))
+                delta_weights_i, delta_biases_i = self.backward_propagation(vectors[chosen_sample], expected[chosen_sample])
+                delta_biases += delta_biases_i
+                delta_weights += delta_biases_i
                 cost += cost_i
             cost *= 1 / nb_iteration
             cost_list[k] = cost
             self.weights += learning_rate * delta_weights / nb_iteration
-            self.biases += learning_rate * delta_biaises / nb_iteration
+            self.biases += learning_rate * delta_biases / nb_iteration
         return cost_list
-
-
-
-
-
 
 
 def sigmoid(z):
     """
-    Returns the sigmoïd value of z
+    Returns the sigmoid value of z
     :param z: an number or an array
     :return: an number or an array
     """
@@ -134,21 +129,21 @@ def sigmoid_prime(z):
     """
     return z*(1-z)
 
-def cost_function(expecteds, hypothese):
+
+def cost_function(expected, hypothesis):
     """
     This function will enable us to see if the cost function has the good behavior.
-    :param vectors: list of vectors
-    :param expecteds: list of expected results to get after learning
-    :param hypothese: list of vectors obtained with the Perceptron
+    :param expected: list of expected results to get after learning
+    :param hypothesis: list of vectors obtained with the forward propagation
     :return: returns the value of the cost function
     """
-    cost_function = 0
-    for k in range(len(expecteds)):
-        y_k = expecteds[k]
-        h_k = hypothese[k]
+    cost = 0
+    for k in range(len(expected)):
+        y_k = expected[k]
+        h_k = hypothesis[k]
         cost_k = y_k * numpy.log(h_k) + (1 - y_k) * numpy.log(1 - h_k)
-        cost_function += cost_k
-    return cost_function
+        cost += cost_k
+    return cost
 
 
 def save_network(network, path, separators=";,"):
@@ -241,7 +236,7 @@ def load_network(path, separator=";,"):
 
         biases.append(bias)
 
-    network = Perceptron(layers)
+    network = MultiPerceptron(layers)
     network.set_weights(weights, biases)
 
     return network
