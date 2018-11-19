@@ -15,10 +15,11 @@ class Perceptron:
         :param vector: Numpy vector
         :return: Numpy vector
         """
+        vect = numpy.copy(vector)
         for loop in range(len(self.layers)-1):
-            vector = self.weights[loop]*vector
-        return vector
-
+            vect = self.weights[loop]*vect
+        return vect
+    
     def backward_propagation(self, vector, expected):
         pass
 
