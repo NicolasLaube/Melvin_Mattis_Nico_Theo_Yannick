@@ -10,7 +10,14 @@ class Perceptron:
             self.weights.append(numpy.zeros([]))
 
     def forward_propagation(self, vector):
-        pass
+        """
+        Executes the forward propagation algorithm.
+        :param vector: Numpy vector
+        :return: Numpy vector
+        """
+        for loop in range(len(self.layers)-1):
+            vector = self.weights[loop]*vector
+        return vector
 
     def backward_propagation(self, vector, expected):
         pass
