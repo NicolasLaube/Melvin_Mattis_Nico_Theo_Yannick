@@ -1,7 +1,7 @@
 import numpy
 
 
-class Perceptron:
+class MultiPerceptron:
     def __init__(self, layers):
         self.weights = []
         self.biases = []
@@ -47,7 +47,6 @@ class Perceptron:
             # The weights part of the vector (capital delta)
             error_weights[layer] = numpy.dot(error_biases[layer+1], numpy.transpose(activations[layer]))
         return error_weights, error_biases
-
 
     def training(self, vectors, expecteds):
         pass
