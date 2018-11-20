@@ -1,5 +1,4 @@
 import numpy
-
 import random
 
 
@@ -24,7 +23,6 @@ class MultiPerceptron:
         :param weights: the list of weights matrices
         :param biases: the list of biases vectors
         """
-
         self.weights = numpy.copy(weights)
         self.biases = numpy.copy(biases)
 
@@ -69,8 +67,8 @@ class MultiPerceptron:
             vector = sigmoid(numpy.dot(self.weights[num_layer], vector) + self.biases[num_layer])
             # Save the step
             activations.append(vector)
-        error_weights = [numpy.zeros(self.layers[i+1], self.layers[i]) for i in range(k)]
-        error_biases = [numpy.zeros(self.layers[i]) for i in range(k)]
+        error_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(k)]
+        error_biases = [numpy.zeros((self.layers[i], 1)) for i in range(k)]
         error_biases[-1] = activations[-1] - expected
         error_weights[-1] = numpy.dot(error_biases[-1], numpy.transpose(activations[-1]))
         # Backward propagation with errors saved
