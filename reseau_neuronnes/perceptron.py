@@ -59,24 +59,32 @@ class MultiPerceptron:
         :param expected: A numpy columns (m, 1) representing the expected prediction y.
         :return: Two lists of numpy matrix representing errors on weights and biases.
         """
-        k = len(self.layers)
-        activations = []
+
+        network_length = len(self.layers)
+        layers_activations = [vector]
+
         # Forward propagation with steps saved in activations
-        for num_layer in range(k-1):
+        for num_layer in range(network_length-1):
             # The weights part of the vector
             vector = sigmoid(numpy.dot(self.weights[num_layer], vector) + self.biases[num_layer])
+
             # Save the step
-            activations.append(vector)
-        error_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(k)]
-        error_biases = [numpy.zeros((self.layers[i], 1)) for i in range(k)]
-        error_biases[-1] = activations[-1] - expected
-        error_weights[-1] = numpy.dot(error_biases[-1], numpy.transpose(activations[-1]))
+            layers_activations.append(vector)
+
+        error_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(network_length-1)]
+        error_biases = [numpy.zeros((self.layers[i+1], 1)) for i in range(network_length-1)]
+
+        error_biases[-1] = (layers_activations[-1] - expected) * sigmoid_prime(layers_activations[-1])
+        error_weights[-1] = numpy.dot(error_biases[-1], numpy.transpose(layers_activations[-2]))
+
         # Backward propagation with errors saved
-        for layer in range(k-2, 0, -1):
+        for layer in range(2, network_length):
             # The biases part of the vector (small delta)
-            error_biases[layer] = numpy.dot(numpy.transpose(self.weights[layer]), error_biases[layer+1])*sigmoid_prime(activations[layer])
+            error_biases[-layer] = numpy.dot(numpy.transpose(self.weights[-layer+1]), error_biases[-layer+1])*sigmoid_prime(layers_activations[-layer])
+
             # The weights part of the vector (capital delta)
-            error_weights[layer] = numpy.dot(error_biases[layer+1], numpy.transpose(activations[layer]))
+            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1]))
+
         return error_weights, error_biases
 
     def training(self, learning_rate, vectors, expected, nb_iteration, epoch):
@@ -89,24 +97,37 @@ class MultiPerceptron:
         :return: This function computes the weights and biases for the next step determination
         of the minimum of cost function
         """
+
         cost_list = numpy.zeros([epoch])
+
         for k in range(epoch):
             # loop till we obtained the minimum
-            delta_weights = numpy.zeros([])
-            delta_biases = numpy.zeros([])
+            delta_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(len(self.layers)-1)]
+            delta_biases = [numpy.zeros((self.layers[i+1], 1)) for i in range(len(self.layers)-1)]
             cost = 0
+
             for i in range(nb_iteration):
                 # loop to avoid the zigzags
                 chosen_sample = random.randint(0, len(vectors) - 1)
+
                 cost_i = cost_function(expected[chosen_sample], self.forward_propagation(vectors[chosen_sample]))
                 delta_weights_i, delta_biases_i = self.backward_propagation(vectors[chosen_sample], expected[chosen_sample])
-                delta_biases += delta_biases_i
-                delta_weights += delta_biases_i
+
+                for j in range(len(self.layers) - 1):
+                    delta_biases[j] += delta_biases_i[j]
+                    delta_weights[j] += delta_weights_i[j]
+
                 cost += cost_i
+
             cost *= 1 / nb_iteration
             cost_list[k] = cost
-            self.weights += learning_rate * delta_weights / nb_iteration
-            self.biases += learning_rate * delta_biases / nb_iteration
+
+            for j in range(len(self.layers) - 1):
+                self.weights[j] -= learning_rate * delta_weights[j] / nb_iteration
+                self.biases[j] -= learning_rate * delta_biases[j] / nb_iteration
+
+            print(k, cost)
+
         return cost_list
 
 
@@ -139,7 +160,7 @@ def cost_function(expected, hypothesis):
     for k in range(len(expected)):
         y_k = expected[k]
         h_k = hypothesis[k]
-        cost_k = y_k * numpy.log(h_k) + (1 - y_k) * numpy.log(1 - h_k)
+        cost_k = -y_k * numpy.log(h_k) - (1 - y_k) * numpy.log(1 - h_k)
         cost += cost_k
     return cost
 
