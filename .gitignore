@@ -103,4 +103,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-reseau_neuronnes/.idea
+reseau_neuronnes/.idea/
