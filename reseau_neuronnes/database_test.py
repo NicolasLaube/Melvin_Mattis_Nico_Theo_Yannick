@@ -21,7 +21,7 @@ def proximity_cut(x, ref, thd):
 
 
 # Build the HoG representation of an image
-def img_to_hog(image):
+def convert_image_to_hog(image):
     """
     Builds the HoG representation the input image
     :param image: a cv2 image
@@ -50,67 +50,113 @@ def img_to_hog(image):
     return hog_data, mag
 
 
-def generate_vectors(path):
+def convert_image_to_vector(image):
+    """
+    Converts the image to a 2048-d vector
+    :param image: cv2 image
+    :return: a 2048-d vector
     """
 
-    :param path:
-    :return:
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hog_data, hog_img = convert_image_to_hog(image)
+    vector = np.zeros((2048, 1))
+
+    ind = 0
+    for i in range(16):
+        for j in range(16):
+            for k in range(8):
+                vector[ind, 0] = hog_data[i, j, k]
+                ind += 1
+
+    return vector
+
+
+def generate_vectors(image_folder, vector_folder):
+    """
+    Generates the vectors representations of each image
+    :param image_folder: path to the image folder
+    :param vector_folder: path to the vector folder
     """
 
-    inputs = []
-    outputs = []
+    images = os.listdir(image_folder)
+
+    for name in images:
+        print(name)
+
+        image = cv2.imread(image_folder + name)
+        vector = convert_image_to_vector(image)
+
+        to_write = ""
+
+        for i in range(2048):
+            to_write += str(vector[i, 0]) + "\n"
+
+        file = open(vector_folder + name.split(".")[0] + ".vec", "w")
+        file.write(to_write)
+
+
+def load_vectors(vector_folder):
+    """
+    Loads the vectors and put labels on them
+    :param vector_folder: path to the vector folder
+    :return: an array of 2048-d vector
+    """
+
+    files = os.listdir(vector_folder)
+    vectors = []
+    expects = []
+
     labels = []
 
-    list_dir = os.listdir(path)
-
-    for image_path in list_dir:
-        label = image_path.split("_")[0]
+    for name in files:
+        label = name.split("_")[0]
 
         if label not in labels:
             labels.append(label)
 
-    for image_path in list_dir:
-        print(image_path)
-        print(labels)
+    for name in files:
+        file = open(vector_folder + name, "r")
 
-        image = cv2.imread(path + image_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        hog_data, hog_img = img_to_hog(image)
-        vector = np.zeros((16*16*8, 1))
+        vector = np.zeros((2048, 1))
 
-        ind = 0
-        for k in range(16):
-            for j in range(16):
-                for i in range(8):
-                    vector[ind, 0] = hog_data[k, j, i]
-                    ind += 1
+        for i in range(2048):
+            vector[i, 0] = float(file.readline())
 
-        label = image_path.split("_")[0]
+        vectors.append(vector)
 
-        inputs.append(vector)
+        label = name.split("_")[0]
 
-        out = np.zeros((len(labels), 1))
-        for k in range(len(labels)):
-            if labels[k] == label:
-                out[k, 0] = 1
+        expected = np.zeros((len(labels), 1))
 
-        outputs.append(out)
+        for i in range(len(labels)):
+            if labels[i] == label:
+                expected[i, 0] = 1
 
-    return inputs, outputs, len(labels)
+        expects.append(expected)
+
+    return vectors, expects
 
 
-ins, outs, end = generate_vectors("P:/coding_weeks/machine_learning/repo/database/images/")
+should_generated_vectors = False
+should_train = True
+should_test = False
 
-print(ins)
-print(outs)
-print(end)
+if should_generated_vectors:
+    generate_vectors("P:/coding_weeks/machine_learning/repo/database/images/", "P:/coding_weeks/machine_learning/repo/database/vectors/")
 
-layers = [2048, 16, 16, end]
+if should_train:
+    ins, outs = load_vectors("P:/coding_weeks/machine_learning/repo/database/vectors/")
 
-network = MultiPerceptron(layers)
-network.randomize(-1.0, 1.0)
+    layers = [2048, 500, 16, 16, outs[0].shape[0]]
 
-network.training(0.9, ins, outs, 100, 10000)
+    network = MultiPerceptron(layers)
+    network.randomize(-1.0, 1.0)
 
-for k in range(len(ins)):
-    print(network.forward_propagation(ins[k]))
+    train = 0
+
+    while True:
+        network.training(ins, outs, 10000, 100, 0.3)
+
+        save_network(network, "P:/coding_weeks/machine_learning/repo/database/networks/trained_" + train + ".nn")
+
+        train += 1

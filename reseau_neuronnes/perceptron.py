@@ -9,6 +9,7 @@ class MultiPerceptron:
         :param layers: a list with the size (number of neurones) of each layers
         """
 
+        # Initializes local attributes
         self.weights = []
         self.biases = []
         self.layers = layers
@@ -23,6 +24,7 @@ class MultiPerceptron:
         :param weights: the list of weights matrices
         :param biases: the list of biases vectors
         """
+
         self.weights = numpy.copy(weights)
         self.biases = numpy.copy(biases)
 
@@ -46,11 +48,13 @@ class MultiPerceptron:
         :param vector: Numpy vector
         :return: Numpy vector
         """
-        vect = numpy.copy(vector)
-        for loop in range(len(self.layers)-1):
-            vect = numpy.dot(self.weights[loop],vect) + self.biases[loop]
-            vect = sigmoid(vect)
-        return vect
+
+        output = numpy.copy(vector)
+
+        for layer in range(len(self.layers)-1):
+            output = sigmoid(numpy.dot(self.weights[layer], output) + self.biases[layer])
+
+        return output
 
     def backward_propagation(self, vector, expected):
         """
@@ -87,26 +91,26 @@ class MultiPerceptron:
 
         return error_weights, error_biases
 
-    def training(self, learning_rate, vectors, expected, nb_iteration, epoch):
+    def training(self, vectors, expected, epochs, batch_size, learning_rate):
         """
         :param learning_rate:
         :param vectors: list of vectors
         :param expected: the list of 0 or 1 if there is a match or not
-        :param nb_iteration: number samples used simultaneously
-        :param epoch: number of steps made
+        :param batch_size: number samples used simultaneously
+        :param epochs: number of steps made
         :return: This function computes the weights and biases for the next step determination
         of the minimum of cost function
         """
 
-        cost_list = numpy.zeros([epoch])
+        cost_list = numpy.zeros([epochs])
 
-        for k in range(epoch):
+        for k in range(epochs):
             # loop till we obtained the minimum
             delta_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(len(self.layers)-1)]
             delta_biases = [numpy.zeros((self.layers[i+1], 1)) for i in range(len(self.layers)-1)]
             cost = 0
 
-            for i in range(nb_iteration):
+            for i in range(batch_size):
                 # loop to avoid the zigzags
                 chosen_sample = random.randint(0, len(vectors) - 1)
 
@@ -119,14 +123,14 @@ class MultiPerceptron:
 
                 cost += cost_i
 
-            cost *= 1 / nb_iteration
+            cost *= 1 / batch_size
             cost_list[k] = cost
 
             for j in range(len(self.layers) - 1):
-                self.weights[j] -= learning_rate * delta_weights[j] / nb_iteration
-                self.biases[j] -= learning_rate * delta_biases[j] / nb_iteration
+                self.weights[j] -= learning_rate * delta_weights[j] / batch_size
+                self.biases[j] -= learning_rate * delta_biases[j] / batch_size
 
-            print(k, cost)
+            print("Epoch {}/{} complete; average cost of the network over this epoch : {}".format(k+1, epochs, cost))
 
         return cost_list
 
@@ -137,7 +141,8 @@ def sigmoid(z):
     :param z: an number or an array
     :return: an number or an array
     """
-    return 1/(1+numpy.exp(-z))
+
+    return 1 / (1 + numpy.exp(-z))
 
 
 def sigmoid_prime(z):
@@ -146,7 +151,8 @@ def sigmoid_prime(z):
     :param z: an number or an array
     :return: an number or an array
     """
-    return z*(1-z)
+
+    return z * (1 - z)
 
 
 def cost_function(expected, hypothesis):
@@ -156,12 +162,14 @@ def cost_function(expected, hypothesis):
     :param hypothesis: list of vectors obtained with the forward propagation
     :return: returns the value of the cost function
     """
+
     cost = 0
     for k in range(len(expected)):
         y_k = expected[k]
         h_k = hypothesis[k]
-        cost_k = -y_k * numpy.log(h_k) - (1 - y_k) * numpy.log(1 - h_k)
-        cost += cost_k
+
+        cost -= y_k * numpy.log(h_k) + (1 - y_k) * numpy.log(1 - h_k)
+
     return cost
 
 
@@ -256,7 +264,7 @@ def load_network(path, separator=";,"):
         biases.append(bias)
 
     network = MultiPerceptron(layers)
-    network.set_weights(weights, biases)
+    network.set_weights_and_biases(weights, biases)
 
     return network
 
