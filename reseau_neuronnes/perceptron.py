@@ -168,9 +168,9 @@ def cost_function(expected, hypothesis):
         y_k = expected[k]
         h_k = hypothesis[k]
 
-        cost -= y_k * numpy.log(h_k) + (1 - y_k) * numpy.log(1 - h_k)
+        cost += (y_k - h_k) ** 2
 
-    return cost
+    return cost / len(expected)
 
 
 def save_network(network, path, separators=";,"):

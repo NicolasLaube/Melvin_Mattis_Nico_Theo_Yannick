@@ -147,16 +147,20 @@ if should_generated_vectors:
 if should_train:
     ins, outs = load_vectors("P:/coding_weeks/machine_learning/repo/database/vectors/")
 
-    layers = [2048, 500, 16, 16, outs[0].shape[0]]
+    layers = [2048, 16, 16, outs[0].shape[0]]
 
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
 
     train = 0
+    alpha = 1
 
     while True:
-        network.training(ins, outs, 10000, 100, 0.3)
+        costs = network.training(ins, outs, 1000, 100, alpha)
 
-        save_network(network, "P:/coding_weeks/machine_learning/repo/database/networks/trained_" + train + ".nn")
+        if costs[-1] > costs[0]:
+            alpha /= 2
+
+        save_network(network, "P:/coding_weeks/machine_learning/repo/database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 
         train += 1
