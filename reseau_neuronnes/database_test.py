@@ -96,7 +96,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
             continue
 
         image = face_delimitation(image)[0]
-        image = cv2.resize(image, (256, 256))
+        image = cv2.resize(image, (128, 128))
         vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
         hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
