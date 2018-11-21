@@ -146,6 +146,7 @@ class MultiPerceptron:
         """
 
         cost = 0
+
         for k in range(len(expected)):
             y_k = expected[k]
             h_k = hypothesis[k]

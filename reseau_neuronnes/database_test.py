@@ -101,7 +101,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
         hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
 
-        for i in range(2048):
+        for i in range(len(vector)):
             to_write += str(vector[i]) + "\n"
 
         plt.imsave(hog_folder + name, hog_image_rescaled, cmap=plt.cm.gray)
@@ -168,6 +168,9 @@ def load_vectors_first_only(vector_folder):
         if label not in labels:
             labels.append(label)
 
+        if len(labels)>10:
+            break
+
     for name in files:
         sample = []
         file = open(vector_folder + name, "r")
@@ -194,6 +197,9 @@ def load_vectors_first_only(vector_folder):
         samples.append(sample)
         processed.append(label)
 
+        if len(samples) > 10:
+            break
+
     return samples, labels
 
 
@@ -205,6 +211,9 @@ if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
         users = json.load(file)
     print(len(users))
+
+    os.mkdir("../database/images_linkCS_killer/")
+
     for user in users:
         # Check that the user has a profile picture
         if user["ctiPhotoURI"] is None:
@@ -227,10 +236,21 @@ if should_generated_vectors:
     generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer_256/", "../database/images_hog_killer_256/")
 
 if should_train:
-    samples, labels = load_vectors_first_only("../database/vectors/")
+    samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")
 
-    layers = [2048, 500, 16, len(labels)]
-    
+    print(len(samples), len(labels))
+
+    layers = [2048, 500, 100, len(labels)]
+
+    print(layers)
+
+    sum = 0
+
+    for k in range(len(layers)-1):
+        sum += layers[k] * layers[k+1]
+
+    print(sum)
+
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
 
@@ -238,7 +258,7 @@ if should_train:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 1000, 100, alpha)
+        costs = network.training(samples, 10, 100, alpha, 0)
 
         if costs[-1] > costs[0]:
             alpha /= 2
@@ -252,9 +272,9 @@ if should_test:
 
     print(labels)
 
-    network = load_network("../database/networks/trained_0_a1.nn")
+    network = load_network("../database/networks/trained_2_a1.nn")
     acc = 0
-    tries = 0
+    tries = 1
 
     for sample in samples:
         guess = network.forward_propagation(sample[0])
@@ -271,7 +291,7 @@ if should_test:
             if sample[1][k, 0] == 1:
                 label = labels[k]
 
-        if max_value < 0.5:
+        if max_value < 0.0:
             print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
 
             continue
