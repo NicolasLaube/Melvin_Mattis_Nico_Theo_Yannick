@@ -11,8 +11,11 @@ class MultiPerceptron:
 
         # Initializes local attributes
         self.weights = []
+        # weights represent the list of weight matrices (each weight matrix is for
+        # the transition from one layer to another)
         self.biases = []
         self.layers = layers
+        # each index of the list (layer number) represent the numbers of neurones in the layer
 
         for k in range(len(layers) - 1):
             self.weights.append(numpy.zeros((layers[k+1], layers[k])))
@@ -56,15 +59,16 @@ class MultiPerceptron:
 
         return output
 
-    def backward_propagation(self, vector, expected):
+    def backward_propagation(self, vector, expected, overfiting_limiter):
         """
         Performs a backward propagation on a vector, given an expected value.
+        :param overfiting_limiter : paramater which enables to decrease the overfiting
         :param vector: A numpy columns (n, 1) representing the input x.
         :param expected: A numpy columns (m, 1) representing the expected prediction y.
         :return: Two lists of numpy matrix representing errors on weights and biases.
         """
 
-        network_length = len(self.layers)
+        network_length = len(self.layers)  # number of layers
         layers_activations = [vector]
 
         # Forward propagation with steps saved in activations
@@ -84,17 +88,18 @@ class MultiPerceptron:
         # Backward propagation with errors saved
         for layer in range(2, network_length):
             # The biases part of the vector (small delta)
-            error_biases[-layer] = numpy.dot(numpy.transpose(self.weights[-layer+1]), error_biases[-layer+1])*sigmoid_prime(layers_activations[-layer])
+            error_biases[-layer] = numpy.dot(numpy.transpose(self.weights[-layer+1]), error_biases[-layer+1]) * sigmoid_prime(layers_activations[-layer])
 
             # The weights part of the vector (capital delta)
-            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1]))
+            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1])) + self.weights[-layer+1] * overfiting_limiter
 
         return error_weights, error_biases
 
-    def training(self, vectors, expected, epochs, batch_size, learning_rate):
+    def training(self, vectors, expected, epochs, batch_size, learning_rate, overfiting_limiter):
         """
         :param learning_rate:
         :param vectors: list of vectors
+        :param overfiting_limiter : parameter which enables to lower the overfiting
         :param expected: the list of 0 or 1 if there is a match or not
         :param batch_size: number samples used simultaneously
         :param epochs: number of steps made
@@ -115,7 +120,7 @@ class MultiPerceptron:
                 chosen_sample = random.randint(0, len(vectors) - 1)
 
                 cost_i = cost_function(expected[chosen_sample], self.forward_propagation(vectors[chosen_sample]))
-                delta_weights_i, delta_biases_i = self.backward_propagation(vectors[chosen_sample], expected[chosen_sample])
+                delta_weights_i, delta_biases_i = self.backward_propagation(vectors[chosen_sample], expected[chosen_sample], overfiting_limiter)
 
                 for j in range(len(self.layers) - 1):
                     delta_biases[j] += delta_biases_i[j]
