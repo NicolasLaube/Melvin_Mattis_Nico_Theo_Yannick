@@ -40,6 +40,8 @@ def convert_image_to_hog(image):
     # Compute the local histogram in a 8x8 pixels square
     hog_data = np.zeros([16, 16, 8])
 
+
+
     for p in range(16):
         for q in range(16):
             for i in range(8):
