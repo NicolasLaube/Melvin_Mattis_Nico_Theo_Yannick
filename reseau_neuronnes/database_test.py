@@ -3,6 +3,9 @@ import numpy as np
 import cv2
 from perceptron import *
 from perceptron import MultiPerceptron
+from skimage.feature import hog
+from skimage import data, exposure
+import matplotlib.pyplot as plt
 
 
 def proximity_cut(x, ref, thd):
@@ -49,31 +52,31 @@ def convert_image_to_hog(image):
                     for ang_i in range(8):
                         hog_data[p, q, ang_i] += mag[p*8+i, q*8+j] * proximity_cut(angle[p*8+i, q*8+j], ang_i*20, 20)
 
-    return hog_data, mag
+    return hog_data
 
 
-def convert_image_to_vector(image):
+def face_delimitation(image):
     """
-    Converts the image to a 2048-d vector
-    :param image: cv2 image
-    :return: a 2048-d vector
+    Shows the faces on an image and recognize the eyes and the nose
+    :param image: image to scale and work with
+    :return: Noting to return
     """
+    face_cascade = cv2.CascadeClassifier('../database/xml/haarcascade_frontalface_default.xml')
+    faces = face_cascade.detectMultiScale(image, 1.3, 5)
 
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    hog_data, hog_img = convert_image_to_hog(image)
-    vector = np.zeros((2048, 1))
+    images = []
 
-    ind = 0
-    for i in range(16):
-        for j in range(16):
-            for k in range(8):
-                vector[ind, 0] = hog_data[i, j, k]
-                ind += 1
+    for face in faces:
+        (x_beginning, y_beginning, face_width, face_height) = face
 
-    return vector
+        roi_img = image[y_beginning:y_beginning+face_height, x_beginning:x_beginning+face_width]
+
+        images.append(roi_img)
+
+    return images
 
 
-def generate_vectors(image_folder, vector_folder):
+def generate_vectors(image_folder, vector_folder, hog_folder):
     """
     Generates the vectors representations of each image
     :param image_folder: path to the image folder
@@ -81,20 +84,28 @@ def generate_vectors(image_folder, vector_folder):
     """
 
     images = os.listdir(image_folder)
-
     for name in images:
         print(name)
-
+        if name == "Thumbs.db":
+            continue
         image = cv2.imread(image_folder + name)
-        vector = convert_image_to_vector(image)
-
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if len(face_delimitation(image)) == 0:
+            continue
+        image = face_delimitation(image)[0]
+        image = cv2.resize(image, (128, 128))
+        vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
+        hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
 
         for i in range(2048):
-            to_write += str(vector[i, 0]) + "\n"
+            to_write += str(vector[i]) + "\n"
 
+        plt.imsave(hog_folder + name, hog_image_rescaled, cmap=plt.cm.gray)
         file = open(vector_folder + name.split(".")[0] + ".vec", "w")
         file.write(to_write)
+        file.flush()
+        file.close()
 
 
 def load_vectors(vector_folder):
@@ -139,15 +150,15 @@ def load_vectors(vector_folder):
     return vectors, expects
 
 
-should_generated_vectors = False
-should_train = True
+should_generated_vectors = True
+should_train = False
 should_test = False
 
 if should_generated_vectors:
-    generate_vectors("P:/coding_weeks/machine_learning/repo/database/images/", "P:/coding_weeks/machine_learning/repo/database/vectors/")
+    generate_vectors("../database/images/", "../database/vectors/", "../database/images_hog/")
 
 if should_train:
-    ins, outs = load_vectors("P:/coding_weeks/machine_learning/repo/database/vectors/")
+    ins, outs = load_vectors("../database/vectors/")
 
     layers = [2048, 16, 16, outs[0].shape[0]]
 
@@ -163,6 +174,6 @@ if should_train:
         if costs[-1] > costs[0]:
             alpha /= 2
 
-        save_network(network, "P:/coding_weeks/machine_learning/repo/database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 
         train += 1

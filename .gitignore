@@ -107,3 +107,4 @@ venv.bak/
 .db
 
 database/images
+database/images_hog
