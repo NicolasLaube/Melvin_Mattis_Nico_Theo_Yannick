@@ -117,7 +117,7 @@ class MultiPerceptron:
                 # loop to avoid the zigzags
                 chosen_sample = random.randint(0, len(samples) - 1)
 
-                cost_i = cost_function(samples[chosen_sample][1], self.forward_propagation(samples[chosen_sample][0]))
+                cost_i = self.cost_function(samples[chosen_sample][1], self.forward_propagation(samples[chosen_sample][0]), overfiting_limiter)
                 delta_weights_i, delta_biases_i = self.backward_propagation(samples[chosen_sample][0], samples[chosen_sample][1], overfiting_limiter)
 
                 for j in range(len(self.layers) - 1):
@@ -137,6 +137,26 @@ class MultiPerceptron:
 
         return cost_list
 
+    def cost_function(self, expected, hypothesis, overfiting_limiter):
+        """
+        This function will enable us to see if the cost function has the good behavior.
+        :param expected: list of expected results to get after learning
+        :param hypothesis: list of vectors obtained with the forward propagation
+        :return: returns the value of the cost function
+        """
+
+        cost = 0
+        for k in range(len(expected)):
+            y_k = expected[k]
+            h_k = hypothesis[k]
+
+            cost += (y_k - h_k) ** 2
+
+        for l in range(len(self.layers) - 1):
+            for i in range(self.layers[l]):
+                for j in range(self.layers[l + 1]):
+                    cost -= overfiting_limiter / 2 * self.weights[l][j, i] ** 2
+        return cost / len(expected)
 
 
 def sigmoid(z):
@@ -157,24 +177,6 @@ def sigmoid_prime(z):
     """
 
     return z * (1 - z)
-
-
-def cost_function(expected, hypothesis):
-    """
-    This function will enable us to see if the cost function has the good behavior.
-    :param expected: list of expected results to get after learning
-    :param hypothesis: list of vectors obtained with the forward propagation
-    :return: returns the value of the cost function
-    """
-
-    cost = 0
-    for k in range(len(expected)):
-        y_k = expected[k]
-        h_k = hypothesis[k]
-
-        cost += (y_k - h_k) ** 2
-
-    return cost / len(expected)
 
 
 def save_network(network, path, separators=";,"):
