@@ -122,7 +122,7 @@ def load_vectors(vector_folder):
     labels = []
 
     for name in files:
-        label = name.split("_")[0]
+        label = name.split("_")[0] + "_" + name.split("_")[1]
 
         if label not in labels:
             labels.append(label)
@@ -137,7 +137,7 @@ def load_vectors(vector_folder):
 
         vectors.append(vector)
 
-        label = name.split("_")[0]
+        label = name.split("_")[0] + "_" + name.split("_")[1]
 
         expected = np.zeros((len(labels), 1))
 
@@ -159,7 +159,9 @@ if should_generated_vectors:
 
 if should_train:
     ins, outs = load_vectors("../database/vectors/")
-
+    training_examples = ins[:int(0.6*len(ins))]
+    validation_examples = ins[int(0.6*len(ins)):int(0.8*len(ins))]
+    test_examples = ins[int(0.8*len(ins)):]
     layers = [2048, 16, 16, outs[0].shape[0]]
 
     network = MultiPerceptron(layers)
