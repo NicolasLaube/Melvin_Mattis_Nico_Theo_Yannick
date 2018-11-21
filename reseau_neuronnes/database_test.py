@@ -198,8 +198,8 @@ def load_vectors_first_only(vector_folder):
 
 
 should_generated_vectors = False
-should_train = False
-should_test = True
+should_train = True
+should_test = False
 
 if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
@@ -248,7 +248,9 @@ if should_train:
         train += 1
 
 if should_test:
-    samples, labels = load_vectors("../database/vectors/")
+    samples, labels = load_vectors("../database/vectors_linkCS_killer_128/")
+
+    print(labels)
 
     network = load_network("../database/networks/trained_0_a1.nn")
     acc = 0
