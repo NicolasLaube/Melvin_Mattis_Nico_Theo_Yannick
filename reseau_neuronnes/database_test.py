@@ -45,8 +45,6 @@ def convert_image_to_hog(image):
     # Compute the local histogram in a 8x8 pixels square
     hog_data = np.zeros([16, 16, 8])
 
-
-
     for p in range(16):
         for q in range(16):
             for i in range(8):
@@ -69,9 +67,9 @@ def face_delimitation(image):
     images = []
 
     for face in faces:
-        (x_beginning, y_beginning, face_width, face_height) = face
+        x_beginning, y_beginning, face_width, face_height = face
 
-        roi_img = image[y_beginning:y_beginning+face_height, x_beginning:x_beginning+face_width]
+        roi_img = image[y_beginning:y_beginning + face_height, x_beginning:x_beginning + face_width]
 
         images.append(roi_img)
 
@@ -87,12 +85,16 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
     images = os.listdir(image_folder)
     for name in images:
         print(name)
+
         if name == "Thumbs.db":
             continue
+
         image = cv2.imread(image_folder + name)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
         if len(face_delimitation(image)) == 0:
             continue
+
         image = face_delimitation(image)[0]
         image = cv2.resize(image, (256, 256))
         vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
@@ -103,6 +105,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
             to_write += str(vector[i]) + "\n"
 
         plt.imsave(hog_folder + name, hog_image_rescaled, cmap=plt.cm.gray)
+
         file = open(vector_folder + name.split(".")[0] + ".vec", "w")
         file.write(to_write)
         file.flush()
@@ -117,8 +120,7 @@ def load_vectors(vector_folder):
     """
 
     files = os.listdir(vector_folder)
-    vectors = []
-    expects = []
+    samples = []
 
     labels = []
 
@@ -129,6 +131,7 @@ def load_vectors(vector_folder):
             labels.append(label)
 
     for name in files:
+        sample = []
         file = open(vector_folder + name, "r")
 
         vector = np.zeros((2048, 1))
@@ -136,7 +139,7 @@ def load_vectors(vector_folder):
         for i in range(2048):
             vector[i, 0] = float(file.readline())
 
-        vectors.append(vector)
+        sample.append(vector)
 
         label = name.split("_")[0] + "_" + name.split("_")[1]
 
@@ -146,14 +149,57 @@ def load_vectors(vector_folder):
             if labels[i] == label:
                 expected[i, 0] = 1
 
-        expects.append(expected)
+        sample.append(expected)
+        samples.append(sample)
 
-    return vectors, expects
+    return samples, labels
 
 
-should_generated_vectors = True
+def load_vectors_first_only(vector_folder):
+    files = os.listdir(vector_folder)
+    samples = []
+
+    labels = []
+    processed = []
+
+    for name in files:
+        label = name.split("_")[0] + "_" + name.split("_")[1]
+
+        if label not in labels:
+            labels.append(label)
+
+    for name in files:
+        sample = []
+        file = open(vector_folder + name, "r")
+
+        vector = np.zeros((2048, 1))
+
+        for i in range(2048):
+            vector[i, 0] = float(file.readline())
+
+        sample.append(vector)
+
+        label = name.split("_")[0] + "_" + name.split("_")[1]
+
+        if label in processed:
+            continue
+
+        expected = np.zeros((len(labels), 1))
+
+        for i in range(len(labels)):
+            if labels[i] == label:
+                expected[i, 0] = 1
+
+        sample.append(expected)
+        samples.append(sample)
+        processed.append(label)
+
+    return samples, labels
+
+
+should_generated_vectors = False
 should_train = False
-should_test = False
+should_test = True
 
 if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
@@ -181,9 +227,10 @@ if should_generated_vectors:
     generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer_256/", "../database/images_hog_killer_256/")
 
 if should_train:
-    ins, outs = load_vectors("../database/vectors/")
-    layers = [2048, 16, 16, outs[0].shape[0]]
+    samples, labels = load_vectors_first_only("../database/vectors/")
 
+    layers = [2048, 500, 16, len(labels)]
+    
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
 
@@ -191,7 +238,7 @@ if should_train:
     alpha = 1
 
     while True:
-        costs = network.training(ins, outs, 1000, 100, alpha)
+        costs = network.training(samples, 1000, 100, alpha)
 
         if costs[-1] > costs[0]:
             alpha /= 2
@@ -199,3 +246,37 @@ if should_train:
         save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 
         train += 1
+
+if should_test:
+    samples, labels = load_vectors("../database/vectors/")
+
+    network = load_network("../database/networks/trained_0_a1.nn")
+    acc = 0
+    tries = 0
+
+    for sample in samples:
+        guess = network.forward_propagation(sample[0])
+        label = ""
+
+        max_index = 0
+        max_value = guess[0, 0]
+
+        for k in range(len(labels)):
+            if guess[k, 0] > max_value:
+                max_index = k
+                max_value = guess[k, 0]
+
+            if sample[1][k, 0] == 1:
+                label = labels[k]
+
+        if max_value < 0.5:
+            print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
+
+            continue
+
+        if sample[1][max_index, 0] == 1:
+            acc += 1
+
+        tries += 1
+
+        print("GUESSED {} \t EXPECTED {} \t ACCURACY {} \t TRUSTED {}".format(labels[max_index], label, str(100.0 * acc / tries)[:5], str(100.0 * max_value)[:5]))
