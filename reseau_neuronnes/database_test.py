@@ -6,6 +6,8 @@ from perceptron import MultiPerceptron
 from skimage.feature import hog
 from skimage import data, exposure
 import matplotlib.pyplot as plt
+import urllib.request
+import json
 
 
 def proximity_cut(x, ref, thd):
@@ -80,7 +82,6 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
     :param image_folder: path to the image folder
     :param vector_folder: path to the vector folder
     """
-
     images = os.listdir(image_folder)
     for name in images:
         print(name)
@@ -95,7 +96,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
             continue
 
         image = face_delimitation(image)[0]
-        image = cv2.resize(image, (128, 128))
+        image = cv2.resize(image, (256, 256))
         vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
         hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
@@ -201,13 +202,35 @@ should_train = False
 should_test = True
 
 if should_generated_vectors:
-    generate_vectors("../database/images/", "../database/vectors/", "../database/images_hog/")
+    with open("../database/LinkCS.json", "r") as file:
+        users = json.load(file)
+    print(len(users))
+    for user in users:
+        # Check that the user has a profile picture
+        if user["ctiPhotoURI"] is None:
+            continue
+        # Check if the user plays the killer
+        killer = False
+        memberships = user["memberships"]
+        for asso in memberships:
+            if asso["association"]["name"] == "Killer Primal":
+                killer = True
+        name = user["firstName"].upper() + "_" + user["lastName"].upper()
+        name = str(name.encode("ASCII", "ignore"))[2:-1]
+        print(name + "  killer: {0}".format(killer))
+        # Add the image to the database
+        if killer:
+            resp = urllib.request.urlopen(user["ctiPhotoURI"])
+            image = np.asarray(bytearray(resp.read()), dtype="uint8")
+            image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+            cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
+    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer_256/", "../database/images_hog_killer_256/")
 
 if should_train:
     samples, labels = load_vectors_first_only("../database/vectors/")
 
     layers = [2048, 500, 16, len(labels)]
-
+    
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
 
