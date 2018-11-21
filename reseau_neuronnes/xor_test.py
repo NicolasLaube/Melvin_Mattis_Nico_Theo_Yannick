@@ -27,7 +27,7 @@ layers = [2,2,1]
 network = MultiPerceptron(layers)
 network.randomize(-1.0, 1.0)
 
-cost_list = network.training(samples, 10000, 100, 0.9, 2)
+cost_list = network.training(samples, 10000, 100, 0.9, 0.00001)
 
 for k in range(len(vectors)):
     print(network.forward_propagation(vectors[k]))
