@@ -105,3 +105,9 @@ venv.bak/
 
 .idea
 .db
+
+database/images_linkCS_killer
+database/images_linkCS_killer_128
+database/images_hog_killer_128
+database/images_linkCS_killer_256
+database/images_hog_killer_256

@@ -95,7 +95,7 @@ class MultiPerceptron:
 
         return error_weights, error_biases
 
-    def training(self, samples, epochs, batch_size, learning_rate, overfiting_limiter):
+  def training(self, samples, epochs, batch_size, learning_rate, overfiting_limiter):
         """
         Trains the network over the provided samples with their labels
         :param samples: the list of pairs input-expected
