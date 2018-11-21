@@ -24,6 +24,8 @@ samples = [
     [numpy.array([[1], [1]]), numpy.array(([0]))]
 ]
 
+layers = [2048, 500, 16, 4]
+
 network = MultiPerceptron(layers)
 network.randomize(-1.0, 1.0)
 
