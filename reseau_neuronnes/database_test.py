@@ -168,9 +168,6 @@ def load_vectors_first_only(vector_folder):
         if label not in labels:
             labels.append(label)
 
-        if len(labels)>10:
-            break
-
     for name in files:
         sample = []
         file = open(vector_folder + name, "r")
@@ -197,8 +194,6 @@ def load_vectors_first_only(vector_folder):
         samples.append(sample)
         processed.append(label)
 
-        if len(samples) > 10:
-            break
 
     return samples, labels
 
@@ -237,42 +232,34 @@ if should_generated_vectors:
 
 if should_train:
     samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")
-
-    print(len(samples), len(labels))
-
-    layers = [2048, 500, 100, len(labels)]
-
-    print(layers)
-
+    layers = [2048, 400, 155, 155, len(labels)]
     sum = 0
 
     for k in range(len(layers)-1):
         sum += layers[k] * layers[k+1]
 
-    print(sum)
-
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
+    #network = load_network("../database/networks/trained_0_a1.nn")
+
 
     train = 0
     alpha = 1
 
     while True:
-        costs = network.training(samples, 10, 100, alpha, 0)
+        costs = network.training(samples, 100, 10, alpha, 0)
 
-        if costs[-1] > costs[0]:
-            alpha /= 2
+        if 2*costs[-1] > costs[0]:
+            alpha /= 10
+            print(alpha)
 
-        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+        save_network(network, "../database/networks/trained_" + str(network.layers) + "_" + str(train) + "_a" + str(np.round(alpha, 4)) + "_" + str(np.round(costs[-1], 4)) + ".nn")
 
         train += 1
 
 if should_test:
     samples, labels = load_vectors("../database/vectors_linkCS_killer_128/")
-
-    print(labels)
-
-    network = load_network("../database/networks/trained_2_a1.nn")
+    network = load_network("../database/networks/trained_0_a1.nn")
     acc = 0
     tries = 1
 
@@ -283,6 +270,7 @@ if should_test:
         max_index = 0
         max_value = guess[0, 0]
 
+        success = "Failed !"
         for k in range(len(labels)):
             if guess[k, 0] > max_value:
                 max_index = k
@@ -291,14 +279,16 @@ if should_test:
             if sample[1][k, 0] == 1:
                 label = labels[k]
 
-        if max_value < 0.0:
-            print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
-
-            continue
+        if max_value < 0.5:
+            if sample[1] == np.zeros((len(labels), 0)):
+                acc += 1
+                success = "Success !"
+            print("{} GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(success, label, str(100.0 * acc / tries)[:5]))
 
         if sample[1][max_index, 0] == 1:
             acc += 1
+            success = "Success !"
 
         tries += 1
 
-        print("GUESSED {} \t EXPECTED {} \t ACCURACY {} \t TRUSTED {}".format(labels[max_index], label, str(100.0 * acc / tries)[:5], str(100.0 * max_value)[:5]))
+        print("{} GUESSED {} \t EXPECTED {} \t ACCURACY {} \t TRUSTED {}".format(success, labels[max_index], label, str(100.0 * acc / tries)[:5], str(100.0 * max_value)[:3]))

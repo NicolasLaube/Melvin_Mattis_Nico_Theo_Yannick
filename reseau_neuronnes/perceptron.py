@@ -91,7 +91,8 @@ class MultiPerceptron:
             error_biases[-layer] = numpy.dot(numpy.transpose(self.weights[-layer+1]), error_biases[-layer+1]) * sigmoid_prime(layers_activations[-layer])
 
             # The weights part of the vector (capital delta)
-            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1])) + self.weights[-layer] * overfiting_limiter
+            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1]))
+            #error_weights[-layer] += self.weights[-layer] * overfiting_limiter
 
         return error_weights, error_biases
 
@@ -153,10 +154,10 @@ class MultiPerceptron:
 
             cost += (y_k - h_k) ** 2
 
-        for l in range(len(self.layers) - 1):
-            for i in range(self.layers[l]):
-                for j in range(self.layers[l + 1]):
-                    cost -= overfiting_limiter / 2 * self.weights[l][j, i] ** 2
+        # for l in range(len(self.layers) - 1):
+        #     for i in range(self.layers[l]):
+        #         for j in range(self.layers[l + 1]):
+        #             cost -= overfiting_limiter / 2 * self.weights[l][j, i] ** 2
         return cost / len(expected)
 
 
