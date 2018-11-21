@@ -91,15 +91,14 @@ class MultiPerceptron:
 
         return error_weights, error_biases
 
-    def training(self, vectors, expected, epochs, batch_size, learning_rate):
+    def training(self, samples, epochs, batch_size, learning_rate):
         """
-        :param learning_rate:
-        :param vectors: list of vectors
-        :param expected: the list of 0 or 1 if there is a match or not
-        :param batch_size: number samples used simultaneously
-        :param epochs: number of steps made
-        :return: This function computes the weights and biases for the next step determination
-        of the minimum of cost function
+        Trains the network over the provided samples with their labels
+        :param samples: the list of pairs input-expected
+        :param epochs: the number of batches
+        :param batch_size: the size of one batch
+        :param learning_rate: a float (hyper parameter); the higher, the faster the learning is, but it can diverge
+        :return: the list of cost after each iterations
         """
 
         cost_list = numpy.zeros([epochs])
@@ -112,10 +111,10 @@ class MultiPerceptron:
 
             for i in range(batch_size):
                 # loop to avoid the zigzags
-                chosen_sample = random.randint(0, len(vectors) - 1)
+                chosen_sample = random.randint(0, len(samples) - 1)
 
-                cost_i = cost_function(expected[chosen_sample], self.forward_propagation(vectors[chosen_sample]))
-                delta_weights_i, delta_biases_i = self.backward_propagation(vectors[chosen_sample], expected[chosen_sample])
+                cost_i = cost_function(samples[chosen_sample][1], self.forward_propagation(samples[chosen_sample][0]))
+                delta_weights_i, delta_biases_i = self.backward_propagation(samples[chosen_sample][0], samples[chosen_sample][1])
 
                 for j in range(len(self.layers) - 1):
                     delta_biases[j] += delta_biases_i[j]
