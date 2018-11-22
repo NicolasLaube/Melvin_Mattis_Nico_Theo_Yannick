@@ -4,6 +4,7 @@ import cv2
 from skimage.feature import hog
 from perceptron import *
 
+import database_train
 
 PATH_IMAGES = "../database/lfw_funneled/"
 PATH_DATABASE = "../database/vector_database/"
@@ -119,10 +120,12 @@ def load_database():
     return samples
 
 
+
+
 SHOULD_CONVERT = False
 SHOULD_TRAIN = False
 SHOULD_TEST = False
-SHOULD_SPLIT = True
+SHOULD_SPLIT = False
 
 if SHOULD_CONVERT:
     convert_samples()
