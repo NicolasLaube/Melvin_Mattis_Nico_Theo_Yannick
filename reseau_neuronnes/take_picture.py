@@ -10,6 +10,7 @@ from aiy.vision.models import face_detection
 from aiy.vision.leds import Leds
 from picamera import PiCamera
 from gpiozero import LED
+from reseau_neuronnes import get_players_name as gpn
 import numpy as np
 import cv2
 from reseau_neuronnes import database_test
@@ -40,15 +41,16 @@ if __name__ == '__main__':
 
 #funtion which decides the colour of the button depending on whether the face was found or not
 def turnonlight(les_strings):
+    players, targets = gpn.get_players_name()
+    colour = (0,0,255)
     for my_String in les_strings:
         led = LED
         if my_String in players and my_String in targets:
-            #turns LED Green if mec was found
-            Leds.rgb_on((0,255,0))
-
+            #turns LED Green if at least one mec was found
+            colour = (0,255,0)
+            #Leds.rgb_on((0,255,0))
+            break
         elif my_String in players:
             #turns LED Red if face is known but not in target list
-            Leds.rgb_on((255,0,0))
-        else:
-            #turns LED Blue if face was unknown
-            Leds.rgb_on((0,0,255))
+            colour = (255,0,0)
+    Leds.update(Leds.rgb_on(colour))
