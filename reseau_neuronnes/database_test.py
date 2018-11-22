@@ -97,7 +97,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
 
         image = face_delimitation(image)[0]
         image = cv2.resize(image, (128, 128))
-        vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
+        vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1), visualise=True)
         hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
 
@@ -203,16 +203,14 @@ def load_vectors_first_only(vector_folder):
     return samples, labels
 
 
-should_generated_vectors = False
-should_train = True
+should_generated_vectors = True
+should_train = False
 should_test = False
 
 if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
         users = json.load(file)
     print(len(users))
-
-    os.mkdir("../database/images_linkCS_killer/")
 
     for user in users:
         # Check that the user has a profile picture
@@ -233,7 +231,7 @@ if should_generated_vectors:
             image = np.asarray(bytearray(resp.read()), dtype="uint8")
             image = cv2.imdecode(image, cv2.IMREAD_COLOR)
             cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
-    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer_256/", "../database/images_hog_killer_256/")
+    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer/", "../database/images_hog_killer/")
 
 if should_train:
     samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")

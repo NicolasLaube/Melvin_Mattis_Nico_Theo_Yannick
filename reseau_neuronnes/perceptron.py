@@ -146,7 +146,7 @@ class MultiPerceptron:
         """
 
         sub_network = MultiPerceptron(self.layers[start:end])
-        sub_network.set_weights(self.weights[start:end-1], self.biases[start:end-1])
+        sub_network.set_weights_and_biases(self.weights[start:end-1], self.biases[start:end-1])
 
         return sub_network
 

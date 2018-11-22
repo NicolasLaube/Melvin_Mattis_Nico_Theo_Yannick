@@ -120,8 +120,9 @@ def load_database():
 
 
 SHOULD_CONVERT = False
-SHOULD_TRAIN = True
+SHOULD_TRAIN = False
 SHOULD_TEST = False
+SHOULD_SPLIT = True
 
 if SHOULD_CONVERT:
     convert_samples()
@@ -169,3 +170,10 @@ if SHOULD_TEST:
         cost += cost_function(guess, sample[1], 0)
 
     print("Global network cost : {}".format(str(cost / len(samples))))
+
+if SHOULD_SPLIT:
+    network = load_network("../database/autoencoder.nn")
+
+    sub_network = network.sub_network(0, 3)
+
+    save_network(sub_network, "../database/encoder.nn")
