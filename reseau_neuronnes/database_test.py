@@ -207,9 +207,9 @@ def reduce_sample_space(encoder, samples):
 
 
 should_generated_vectors = False
-should_train = True
+should_train = False
 should_train_v2 = False
-should_test = False
+should_test = True
 
 if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
@@ -305,11 +305,10 @@ if should_train:
 
 if should_test:
     samples, labels = load_vectors("../database/vectors_linkCS_killer/")
-    samples = reduce_sample_space(load_network("../database/encoder.nn"), samples)
 
     print(labels)
 
-    network = load_network("../database/networks/trained_2_a1.nn")
+    network = load_network("../database/networks/trained_1_a1.nn")
     acc = 0
     tries = 1
 
@@ -328,7 +327,7 @@ if should_test:
             if sample[1][k, 0] == 1:
                 label = labels[k]
 
-        if max_value < 0.0:
+        if max_value < 0.5:
             print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
 
             continue
