@@ -10,9 +10,9 @@ from aiy.vision.models import face_detection
 from aiy.vision.leds import Leds
 from picamera import PiCamera
 from gpiozero import LED
-from reseau_neuronnes import get_players_name as gpn
 import numpy as np
 import cv2
+import json
 from reseau_neuronnes import database_test
 
 def main():
@@ -27,8 +27,8 @@ def main():
                 if len(face_detection.get_faces(result)) >= 1:
                     camera.capture('faces.jpg')
                     image = cv2.imread('faces.jpg')
-                    print(process(image)) #to be replaced
-                    #turnonlight(process(image))
+                    #print(process(image)) #to be replaced
+                    turnonlight(process(image))
                     break
 
         # Stop preview
@@ -39,9 +39,28 @@ if __name__ == '__main__':
     main()
 
 
+
+def get_players_name(datas):
+    """
+
+    :return:
+    """
+    with open(datas, 'r') as file:
+        json_data = json.load(file)
+        players = []
+        targets = []
+        for person in json_data:
+            if person["is_target"]:
+                targets.append(person["nom"])
+            if person["is_player"]:
+                players.append(person["nom"])
+        return players, targets
+
+
+
 #funtion which decides the colour of the button depending on whether the face was found or not
 def turnonlight(les_strings):
-    players, targets = gpn.get_players_name()
+    players, targets = get_players_name(compare_data)
     colour = (0,0,255)
     for my_String in les_strings:
         led = LED
@@ -54,3 +73,5 @@ def turnonlight(les_strings):
             #turns LED Red if face is known but not in target list
             colour = (255,0,0)
     Leds.update(Leds.rgb_on(colour))
+
+
