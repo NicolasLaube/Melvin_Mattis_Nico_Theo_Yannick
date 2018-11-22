@@ -261,21 +261,22 @@ if should_train_v2:
     train = 0
     alpha = 1
 
-    file = open("../database/costs.txt", "w")
-
     while True:
         costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
 
+        file = open("../database/networks/costs_" + str(train) + ".txt", "w")
+
         for cost in costs:
             file.write(str(cost) + ";")
 
         file.write("\n")
         file.flush()
+        file.close()
 
-        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+        save_network(network, "../database/networks/trained_" + str(train) + ".nn")
 
         train += 1
 
