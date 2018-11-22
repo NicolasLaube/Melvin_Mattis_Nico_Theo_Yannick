@@ -30,7 +30,7 @@ layers = [2,2,1]
 network = MultiPerceptron(layers)
 network.randomize(-1.0, 1.0)
 
-cost_list = network.training(samples, 5000, 100, 1, 0.1)
+cost_list = network.training(samples, 10000, 100, 1, 0.1)
 # ajouter le LAMBDA
 
 for k in range(len(vectors)):

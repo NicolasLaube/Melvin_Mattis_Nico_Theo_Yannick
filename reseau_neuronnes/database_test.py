@@ -207,9 +207,9 @@ def reduce_sample_space(encoder, samples):
 
 
 should_generated_vectors = False
-should_train = False
+should_train = True
 should_train_v2 = False
-should_test = True
+should_test = False
 
 if should_generated_vectors:
     # with open("../database/LinkCS.json", "r") as file:
@@ -261,11 +261,19 @@ if should_train_v2:
     train = 0
     alpha = 1
 
+    file = open("../database/costs.txt", "w")
+
     while True:
-        costs = network.training(samples, 1000, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
+
+        for cost in costs:
+            file.write(str(cost) + ";")
+
+        file.write("\n")
+        file.flush()
 
         save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 

@@ -66,7 +66,7 @@ def process(image):
 
     for image in images:
         image = cv2.resize(image, (128, 128))
-        vector = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=False)
+        vector = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1), visualise=False)
 
         guess = network.forward_propagation(vector)
 
