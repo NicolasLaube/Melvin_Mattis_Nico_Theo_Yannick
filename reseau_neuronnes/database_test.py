@@ -96,8 +96,8 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
             continue
 
         image = face_delimitation(image)[0]
-        image = cv2.resize(image, (256, 256))
-        vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=True)
+        image = cv2.resize(image, (128, 128))
+        vector, hog_image = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1), visualise=True)
         hog_image_rescaled = exposure.rescale_intensity(hog_image, in_range=(0, 10))
         to_write = ""
 
@@ -168,9 +168,6 @@ def load_vectors_first_only(vector_folder):
         if label not in labels:
             labels.append(label)
 
-        if len(labels)>10:
-            break
-
     for name in files:
         sample = []
         file = open(vector_folder + name, "r")
@@ -197,22 +194,27 @@ def load_vectors_first_only(vector_folder):
         samples.append(sample)
         processed.append(label)
 
-        if len(samples) > 10:
-            break
-
     return samples, labels
+
+
+def reduce_sample_space(encoder, samples):
+    reduced_samples = []
+
+    for sample in samples:
+        reduced_samples.append([encoder.forward_propagation(sample[0]), sample[1]])
+
+    return reduced_samples
 
 
 should_generated_vectors = False
 should_train = True
+should_train_v2 = False
 should_test = False
 
 if should_generated_vectors:
     with open("../database/LinkCS.json", "r") as file:
         users = json.load(file)
     print(len(users))
-
-    os.mkdir("../database/images_linkCS_killer/")
 
     for user in users:
         # Check that the user has a profile picture
@@ -233,14 +235,16 @@ if should_generated_vectors:
             image = np.asarray(bytearray(resp.read()), dtype="uint8")
             image = cv2.imdecode(image, cv2.IMREAD_COLOR)
             cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
-    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer_256/", "../database/images_hog_killer_256/")
+    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer/", "../database/images_hog_killer/")
 
-if should_train:
+if should_train_v2:
     samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")
 
     print(len(samples), len(labels))
 
-    layers = [2048, 500, 100, len(labels)]
+    samples = reduce_sample_space(load_network("../database/encoder.nn"), samples)
+
+    layers = [128, 128, 128, len(labels)]
 
     print(layers)
 
@@ -258,7 +262,39 @@ if should_train:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 10, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0)
+
+        if costs[-1] > costs[0]:
+            alpha /= 2
+
+        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+
+        train += 1
+
+if should_train:
+    samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer/")
+
+    print(len(samples), len(labels))
+
+    layers = [2048, 128, 128, len(labels)]
+
+    print(layers)
+
+    sum = 0
+
+    for k in range(len(layers)-1):
+        sum += layers[k] * layers[k+1]
+
+    print(sum)
+
+    network = MultiPerceptron(layers)
+    network.randomize(-1.0, 1.0)
+
+    train = 0
+    alpha = 1
+
+    while True:
+        costs = network.training(samples, 1000, 100, alpha, 0)
 
         if costs[-1] > costs[0]:
             alpha /= 2
@@ -268,7 +304,8 @@ if should_train:
         train += 1
 
 if should_test:
-    samples, labels = load_vectors("../database/vectors_linkCS_killer_128/")
+    samples, labels = load_vectors("../database/vectors_linkCS_killer/")
+    samples = reduce_sample_space(load_network("../database/encoder.nn"), samples)
 
     print(labels)
 
