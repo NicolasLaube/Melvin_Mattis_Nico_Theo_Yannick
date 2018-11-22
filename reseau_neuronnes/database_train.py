@@ -7,6 +7,9 @@ from skimage.feature import hog
 
 from perceptron import *
 
+import json
+import urllib.request
+
 
 ########################################################################################################################
 #  PLOT FUNCTION                                                                                                       #
@@ -78,23 +81,26 @@ def create_vector_database(database_path, image_folder, xml_path, separator="#;,
         for face in to_convert:
             images[label].append(face)
 
+            cv2.imwrite("../database/images/pred/" + label + str(random.uniform(0, 1000)) + ".png", face)
+
     write = ""
 
     for label in images:
-        write += label + separator[0]
-        line = ""
+        if len(images[label]) > 0:
+            write += label + separator[0]
+            line = ""
 
-        for image in images[label]:
-            serialized_vector = ""
-            image = cv2.resize(image, (128, 128))
-            vector = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1))
+            for image in images[label]:
+                serialized_vector = ""
+                image = cv2.resize(image, (128, 128))
+                vector = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1))
 
-            for k in range(len(vector)):
-                serialized_vector += str(vector[k]) + separator[2]
+                for k in range(len(vector)):
+                    serialized_vector += str(vector[k]) + separator[2]
 
-            line += serialized_vector[:-1] + separator[1]
+                line += serialized_vector[:-1] + separator[1]
 
-        write += line[:-1] + "\n"
+            write += line[:-1] + "\n"
 
     file = open(database_path, "w")
     file.write(write)
@@ -208,6 +214,8 @@ def train_network(network_folder, layers, samples, epochs_per_saves=1000, batch_
 
         train += 1
 
+        test_network_vector(network)
+
 
 def create_sample_data(database_path):
     """
@@ -264,13 +272,13 @@ def test_network_vector(network):
 
             tries += 1
 
-            if max_value < 0.3:
+            if max_value < 0.5:
                 if label not in known_labels:
                     count += 1
 
-                    print("GUESSED UNKNOWN \t EXPECTED UNKNOWN \t ACCURACY {}".format(str(100.0 * count / tries)[:5]))
+                    print("GUESSED UNKNOWN \t EXPECTED UNKNOWN \t ACCURACY {} \t TRUSTED {}".format(str(100.0 * count / tries)[:5], str(100.0 * max_value)[:5]))
                 else:
-                    print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {}".format(label, str(100.0 * count / tries)[:5]))
+                    print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t TRUSTED {}".format(label, str(100.0 * count / tries)[:5], str(100.0 * max_value)[:5]))
 
             else:
                 if label == known_labels[max_index]:
@@ -284,19 +292,46 @@ should_create_database_test = False
 should_create_database_train = False
 should_train_network = True
 should_test_network_vector = False
+should_json = False
 
 if should_plot_cost_function:
     plot_cost_function("../database/networks/")
 
 if should_create_database_test:
-    create_vector_database("../database/test_database.vdb", "../database/images/test/", "../database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("../database/linkcs_database.vdb", "../database/images_linkCS_killer/", "../database/xml/haarcascade_frontalface_default.xml")
 
 if should_create_database_train:
     create_vector_database("../database/training_database.vdb", "../database/images/training/", "../database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("../database/training_database_double.vdb", "../database/images/training_double/", "../database/xml/haarcascade_frontalface_default.xml")
     create_vector_database("../database/training_database_triple.vdb", "../database/images/training_triple/", "../database/xml/haarcascade_frontalface_default.xml")
 
 if should_train_network:
-    train_network("../database/networks/", [2048, 512, 128, 4], create_sample_data("../database/training_database.vdb"))
+    train_network("../database/networks/", [2048, 128, 16, 155], create_sample_data("../database/linkcs_database.vdb"))
 
 if should_test_network_vector:
-    test_network_vector(load_network("../database/trained_networks/network_6_a1.0_c8.637633899800674e-05.nn"))
+    test_network_vector(load_network("../database/trained_networks/network_2048_128_16_4_3.nn"))
+
+if should_json:
+    with open("../database/LinkCS.json", "r") as file:
+        users = json.load(file)
+    print(len(users))
+
+    for user in users:
+        # Check that the user has a profile picture
+        if user["ctiPhotoURI"] is None:
+            continue
+        # Check if the user plays the killer
+        killer = False
+        memberships = user["memberships"]
+        for asso in memberships:
+            if asso["association"]["name"] == "Killer Primal":
+                killer = True
+        name = user["firstName"].upper() + "_" + user["lastName"].upper()
+        name = str(name.encode("ASCII", "ignore"))[2:-1]
+        print(name + "  killer: {0}".format(killer))
+        # Add the image to the database
+        if killer:
+            resp = urllib.request.urlopen(user["ctiPhotoURI"])
+            image = numpy.asarray(bytearray(resp.read()), dtype="uint8")
+            image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+            cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
