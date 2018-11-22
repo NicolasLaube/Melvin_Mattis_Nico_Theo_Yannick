@@ -7,7 +7,7 @@ from perceptron import *
 from skimage.feature import hog
 
 
-PATH_NETWORK = "../database/networks/trained_0_a1.nn"
+PATH_NETWORK = "../database/trained_2_a1.nn"
 PATH_VECTORS = "../database/vectors/"
 PATH_XML = "../database/xml/haarcascade_frontalface_default.xml"
 
@@ -24,7 +24,10 @@ def load_labels():
     labels_sanitized = []
 
     for label in labels_non_sanitized:
-        labels_sanitized.append(label.split(".")[0])
+        label_sanitized = label.split("_0")[0]
+
+        if label_sanitized not in labels_sanitized:
+            labels_sanitized.append(label_sanitized)
 
     return labels_sanitized
 
@@ -50,14 +53,14 @@ def face_detection(image):
     return faces, images
 
 
-def process(image):
+def process(source):
     """
     Applies the hog transformation over the image and feed forward the vector through the network
-    :param image: the cv2 image as a numpy array
+    :param source: the cv2 image as a numpy array
     :return: the guessed label
     """
 
-    faces, images = face_detection(image)
+    faces, images = face_detection(source)
 
     if len(images) == 0:
         return []
@@ -66,25 +69,37 @@ def process(image):
 
     for image in images:
         image = cv2.resize(image, (128, 128))
-        vector = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(2, 2), visualise=False)
+        vector_list = hog(image, orientations=8, pixels_per_cell=(8, 8), cells_per_block=(1, 1))
+
+        vector = numpy.zeros((len(vector_list), 1))
+
+        for k in range(len(vector_list)):
+            vector[k, 0] = vector_list[k]
 
         guess = network.forward_propagation(vector)
 
         max_index = 0
         max_value = guess[0, 0]
 
-        for k in range(len(labels)):
+        for k in range(len(loaded_labels)):
             if guess[k, 0] > max_value:
                 max_index = k
                 max_value = guess[k, 0]
 
-        if max_value < 0.5:
+        if max_value < 0.3:
             labels.append(LABEL_UNKNOWN)
         else:
             labels.append(loaded_labels[max_index])
+
+            cv2.imwrite("../database/images/pred/" + loaded_labels[max_index] + str(random.uniform(0, 1000)) + ".png", image)
+
+
 
     return labels
 
 
 network = load_network(PATH_NETWORK)
 loaded_labels = load_labels()
+
+print(loaded_labels)
+print(network.layers)

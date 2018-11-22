@@ -104,7 +104,7 @@ def generate_vectors(image_folder, vector_folder, hog_folder):
         for i in range(len(vector)):
             to_write += str(vector[i]) + "\n"
 
-        plt.imsave(hog_folder + name, hog_image_rescaled, cmap=plt.cm.gray)
+        #plt.imsave(hog_folder + name, hog_image_rescaled, cmap=plt.cm.gray)
 
         file = open(vector_folder + name.split(".")[0] + ".vec", "w")
         file.write(to_write)
@@ -212,30 +212,30 @@ should_train_v2 = False
 should_test = False
 
 if should_generated_vectors:
-    with open("../database/LinkCS.json", "r") as file:
-        users = json.load(file)
-    print(len(users))
-
-    for user in users:
-        # Check that the user has a profile picture
-        if user["ctiPhotoURI"] is None:
-            continue
-        # Check if the user plays the killer
-        killer = False
-        memberships = user["memberships"]
-        for asso in memberships:
-            if asso["association"]["name"] == "Killer Primal":
-                killer = True
-        name = user["firstName"].upper() + "_" + user["lastName"].upper()
-        name = str(name.encode("ASCII", "ignore"))[2:-1]
-        print(name + "  killer: {0}".format(killer))
-        # Add the image to the database
-        if killer:
-            resp = urllib.request.urlopen(user["ctiPhotoURI"])
-            image = np.asarray(bytearray(resp.read()), dtype="uint8")
-            image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-            cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
-    generate_vectors("../database/images_linkCS_killer/", "../database/vectors_linkCS_killer/", "../database/images_hog_killer/")
+    # with open("../database/LinkCS.json", "r") as file:
+    #     users = json.load(file)
+    # print(len(users))
+    #
+    # for user in users:
+    #     # Check that the user has a profile picture
+    #     if user["ctiPhotoURI"] is None:
+    #         continue
+    #     # Check if the user plays the killer
+    #     killer = False
+    #     memberships = user["memberships"]
+    #     for asso in memberships:
+    #         if asso["association"]["name"] == "Killer Primal":
+    #             killer = True
+    #     name = user["firstName"].upper() + "_" + user["lastName"].upper()
+    #     name = str(name.encode("ASCII", "ignore"))[2:-1]
+    #     print(name + "  killer: {0}".format(killer))
+    #     # Add the image to the database
+    #     if killer:
+    #         resp = urllib.request.urlopen(user["ctiPhotoURI"])
+    #         image = np.asarray(bytearray(resp.read()), dtype="uint8")
+    #         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+    #         cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
+    generate_vectors("../database/images/", "../database/vectors/", "../database/images_hog/")
 
 if should_train_v2:
     samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")
@@ -262,21 +262,30 @@ if should_train_v2:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 1000, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
 
-        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+        file = open("../database/networks/costs_" + str(train) + ".txt", "w")
+
+        for cost in costs:
+            file.write(str(cost) + ";")
+
+        file.write("\n")
+        file.flush()
+        file.close()
+
+        save_network(network, "../database/networks/trained_" + str(train) + ".nn")
 
         train += 1
 
 if should_train:
-    samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer/")
+    samples, labels = load_vectors_first_only("../database/vectors/")
 
     print(len(samples), len(labels))
 
-    layers = [2048, 128, 128, len(labels)]
+    layers = [2048, 16, 16, len(labels)]
 
     print(layers)
 
@@ -294,10 +303,21 @@ if should_train:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 1000, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
+
+        file = open("../database/networks/costs_" + str(train) + ".txt", "w")
+
+        to_write = ""
+
+        for cost in costs:
+            to_write += str(cost) + ";"
+
+        file.write(to_write)
+        file.flush()
+        file.close()
 
         save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 
@@ -305,11 +325,10 @@ if should_train:
 
 if should_test:
     samples, labels = load_vectors("../database/vectors_linkCS_killer/")
-    samples = reduce_sample_space(load_network("../database/encoder.nn"), samples)
 
     print(labels)
 
-    network = load_network("../database/networks/trained_2_a1.nn")
+    network = load_network("../database/networks/trained_1_a1.nn")
     acc = 0
     tries = 1
 
@@ -328,7 +347,7 @@ if should_test:
             if sample[1][k, 0] == 1:
                 label = labels[k]
 
-        if max_value < 0.0:
+        if max_value < 0.5:
             print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
 
             continue

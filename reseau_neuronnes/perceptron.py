@@ -31,6 +31,17 @@ class MultiPerceptron:
         self.weights = numpy.copy(weights)
         self.biases = numpy.copy(biases)
 
+    def clone(self):
+        """
+        Returns a copy of the network
+        :return: the new network
+        """
+
+        network = MultiPerceptron(self.layers)
+        network.set_weights_and_biases(self.weights.copy(), self.biases.copy())
+
+        return network
+
     def randomize(self, low, high):
         """
         Randomizes the weights and the biases of the network
@@ -59,10 +70,9 @@ class MultiPerceptron:
 
         return output
 
-    def backward_propagation(self, vector, expected, overfiting_limiter):
+    def backward_propagation(self, vector, expected):
         """
         Performs a backward propagation on a vector, given an expected value.
-        :param overfiting_limiter : paramater which enables to decrease the overfiting
         :param vector: A numpy columns (n, 1) representing the input x.
         :param expected: A numpy columns (m, 1) representing the expected prediction y.
         :return: Two lists of numpy matrix representing errors on weights and biases.
@@ -91,21 +101,25 @@ class MultiPerceptron:
             error_biases[-layer] = numpy.dot(numpy.transpose(self.weights[-layer+1]), error_biases[-layer+1]) * sigmoid_prime(layers_activations[-layer])
 
             # The weights part of the vector (capital delta)
-            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1])) + self.weights[-layer] * overfiting_limiter
+            error_weights[-layer] = numpy.dot(error_biases[-layer], numpy.transpose(layers_activations[-layer-1]))
 
         return error_weights, error_biases
 
-    def training(self, samples, epochs, batch_size, learning_rate, overfiting_limiter):
+    def training(self, samples, epochs, batch_size, learning_rate, momentum):
         """
         Trains the network over the provided samples with their labels
         :param samples: the list of pairs input-expected
         :param epochs: the number of batches
         :param batch_size: the size of one batch
         :param learning_rate: a float (hyper parameter); the higher, the faster the learning is, but it can diverge
+        :param momentum: a float (hyper parameter); avoid the training process from getting stuck in a local minimum
         :return: the list of cost after each iterations
         """
 
         cost_list = numpy.zeros([epochs])
+
+        previous_delta_weights = [numpy.zeros((self.layers[i+1], self.layers[i])) for i in range(len(self.layers)-1)]
+        previous_delta_biases = [numpy.zeros((self.layers[i+1], 1)) for i in range(len(self.layers)-1)]
 
         for k in range(epochs):
             # loop till we obtained the minimum
@@ -117,8 +131,8 @@ class MultiPerceptron:
                 # loop to avoid the zigzags
                 chosen_sample = random.randint(0, len(samples) - 1)
 
-                cost_i = cost_function(samples[chosen_sample][1], self.forward_propagation(samples[chosen_sample][0]), overfiting_limiter)
-                delta_weights_i, delta_biases_i = self.backward_propagation(samples[chosen_sample][0], samples[chosen_sample][1], overfiting_limiter)
+                cost_i = cost_function(samples[chosen_sample][1], self.forward_propagation(samples[chosen_sample][0]))
+                delta_weights_i, delta_biases_i = self.backward_propagation(samples[chosen_sample][0], samples[chosen_sample][1])
 
                 for j in range(len(self.layers) - 1):
                     delta_biases[j] += delta_biases_i[j]
@@ -130,8 +144,11 @@ class MultiPerceptron:
             cost_list[k] = cost
 
             for j in range(len(self.layers) - 1):
-                self.weights[j] -= learning_rate * delta_weights[j] / batch_size
-                self.biases[j] -= learning_rate * delta_biases[j] / batch_size
+                self.weights[j] += -learning_rate * delta_weights[j] / batch_size + momentum * previous_delta_weights[j]
+                self.biases[j] += -learning_rate * delta_biases[j] / batch_size + momentum * previous_delta_biases[j]
+
+                previous_delta_weights[j] = delta_weights[j] / batch_size
+                previous_delta_biases[j] = delta_biases[j] / batch_size
 
             print("Epoch {}/{} complete; average cost of the network over this epoch : {}".format(k+1, epochs, cost))
 
@@ -151,7 +168,7 @@ class MultiPerceptron:
         return sub_network
 
 
-def cost_function(expected, hypothesis, overfiting_limiter):
+def cost_function(expected, hypothesis):
     """
     This function will enable us to see if the cost function has the good behavior.
     :param expected: list of expected results to get after learning
