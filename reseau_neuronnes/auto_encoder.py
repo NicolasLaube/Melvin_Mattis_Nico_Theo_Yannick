@@ -136,7 +136,7 @@ if SHOULD_TRAIN:
     network = MultiPerceptron(layers)
     network.randomize(-1.0, 1.0)
 
-    alpha = 1.0
+    alpha = 0.5
     epoch = 0
 
     while True:
@@ -150,4 +150,22 @@ if SHOULD_TRAIN:
         epoch += 1
 
 if SHOULD_TEST:
-    pass
+    samples = load_database()
+
+    print("Loaded database with {} samples".format(len(samples)))
+
+    network = load_network("../database/networks/autoencoder_29.nn")
+
+    cost = 0
+
+    guess = network.forward_propagation(samples[0][0])
+
+    for k in range(2048):
+        print(samples[0][0][k, 0], "\t", guess[k, 0])
+
+    for sample in samples:
+        guess = network.forward_propagation(sample[0])
+
+        cost += cost_function(guess, sample[1], 0)
+
+    print("Global network cost : {}".format(str(cost / len(samples))))
