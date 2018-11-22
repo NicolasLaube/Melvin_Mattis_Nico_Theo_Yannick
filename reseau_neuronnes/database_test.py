@@ -262,12 +262,21 @@ if should_train_v2:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 1000, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
 
-        save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
+        file = open("../database/networks/costs_" + str(train) + ".txt", "w")
+
+        for cost in costs:
+            file.write(str(cost) + ";")
+
+        file.write("\n")
+        file.flush()
+        file.close()
+
+        save_network(network, "../database/networks/trained_" + str(train) + ".nn")
 
         train += 1
 
@@ -305,11 +314,10 @@ if should_train:
 
 if should_test:
     samples, labels = load_vectors("../database/vectors_linkCS_killer/")
-    samples = reduce_sample_space(load_network("../database/encoder.nn"), samples)
 
     print(labels)
 
-    network = load_network("../database/networks/trained_2_a1.nn")
+    network = load_network("../database/networks/trained_1_a1.nn")
     acc = 0
     tries = 1
 
@@ -328,7 +336,7 @@ if should_test:
             if sample[1][k, 0] == 1:
                 label = labels[k]
 
-        if max_value < 0.0:
+        if max_value < 0.5:
             print("GUESSED UNKNOWN \t EXPECTED {} \t ACCURACY {} \t SKIP".format(label, str(100.0 * acc / tries)[:5]))
 
             continue
