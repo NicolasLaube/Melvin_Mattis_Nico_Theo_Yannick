@@ -31,6 +31,17 @@ class MultiPerceptron:
         self.weights = numpy.copy(weights)
         self.biases = numpy.copy(biases)
 
+    def clone(self):
+        """
+        Returns a copy of the network
+        :return: the new network
+        """
+
+        network = MultiPerceptron(self.layers)
+        network.set_weights_and_biases(self.weights.copy(), self.biases.copy())
+
+        return network
+
     def randomize(self, low, high):
         """
         Randomizes the weights and the biases of the network

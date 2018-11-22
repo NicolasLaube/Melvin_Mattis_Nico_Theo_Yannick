@@ -235,7 +235,7 @@ if should_generated_vectors:
     #         image = np.asarray(bytearray(resp.read()), dtype="uint8")
     #         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     #         cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
-    generate_vectors("../database/images_test/", "../database/vectors/", "../database/images_hog/")
+    generate_vectors("../database/images/", "../database/vectors/", "../database/images_hog/")
 
 if should_train_v2:
     samples, labels = load_vectors_first_only("../database/vectors_linkCS_killer_128/")
@@ -285,7 +285,7 @@ if should_train:
 
     print(len(samples), len(labels))
 
-    layers = [2048, 128, 16, len(labels)]
+    layers = [2048, 16, 16, len(labels)]
 
     print(layers)
 
@@ -303,10 +303,21 @@ if should_train:
     alpha = 1
 
     while True:
-        costs = network.training(samples, 1000, 100, alpha, 0)
+        costs = network.training(samples, 1000, 100, alpha, 0.1)
 
         if costs[-1] > costs[0]:
             alpha /= 2
+
+        file = open("../database/networks/costs_" + str(train) + ".txt", "w")
+
+        to_write = ""
+
+        for cost in costs:
+            to_write += str(cost) + ";"
+
+        file.write(to_write)
+        file.flush()
+        file.close()
 
         save_network(network, "../database/networks/trained_" + str(train) + "_a" + str(alpha) + ".nn")
 
