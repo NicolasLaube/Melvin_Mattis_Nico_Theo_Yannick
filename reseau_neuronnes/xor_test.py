@@ -4,19 +4,6 @@ import matplotlib.pyplot as plt
 
 import matplotlib.pyplot as plt
 
-vectors = [
-    numpy.array([[0], [0]]),
-    numpy.array([[0], [1]]),
-    numpy.array([[1], [0]]),
-    numpy.array([[1], [1]])
-]
-
-expects = [
-    numpy.array([[0]]),
-    numpy.array([[1]]),
-    numpy.array([[1]]),
-    numpy.array([[0]])
-]
 
 samples = [
     [numpy.array([[0], [0]]), numpy.array(([0]))],
@@ -25,18 +12,24 @@ samples = [
     [numpy.array([[1], [1]]), numpy.array(([0]))]
 ]
 
-layers = [2,2,1]
+layers = [2, 128, 128, 1]
 
 network = MultiPerceptron(layers)
 network.randomize(-1.0, 1.0)
 
-cost_list = network.training(samples, 10000, 100, 1, 0.1)
-# ajouter le LAMBDA
+save_network(network, "../database/temp_xor.nn")
 
-for k in range(len(vectors)):
-    print(network.forward_propagation(vectors[k]))
+momentum = [0, 0.1]
+networks = [load_network("../database/temp_xor.nn") for _ in range(len(momentum))]
 
-plt.plot(range(len(cost_list)), cost_list)
+for k in range(len(networks)):
+    print(id(networks[k]))
+
+costs_lists = [networks[k].training(samples, 1000, 100, 1, momentum[k]) for k in range(len(momentum))]
+
+for k in range(len(momentum)):
+    plt.plot(range(len(costs_lists[k])), costs_lists[k], label="eta = " + str(momentum[k]))
+
+plt.legend()
 plt.grid()
-
 plt.show()
