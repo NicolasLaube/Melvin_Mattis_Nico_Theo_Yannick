@@ -7,29 +7,30 @@ from perceptron import *
 from skimage.feature import hog
 
 
-PATH_NETWORK = "../database/trained_2_a1.nn"
-PATH_VECTORS = "../database/vectors/"
+PATH_NETWORK = "../database/multi_net/"
+PATH_DATABASE = "../database/training_database.vdb"
 PATH_XML = "../database/xml/haarcascade_frontalface_default.xml"
 
 LABEL_UNKNOWN = "UNKNOWN"
 
 
-def load_labels():
+def load_labels(separator="#"):
     """
     Loads the list of used labels
     :return: the label list
     """
 
-    labels_non_sanitized = os.listdir(PATH_VECTORS)
-    labels_sanitized = []
+    file = open(PATH_DATABASE, "r")
+    line = file.readline()
 
-    for label in labels_non_sanitized:
-        label_sanitized = label.split("_0")[0]
+    labels = []
 
-        if label_sanitized not in labels_sanitized:
-            labels_sanitized.append(label_sanitized)
+    while line != "":
+        labels.append(line.split(separator))
 
-    return labels_sanitized
+        line = file.readline()
+
+    return line
 
 
 def face_detection(image):
@@ -76,30 +77,47 @@ def process(source):
         for k in range(len(vector_list)):
             vector[k, 0] = vector_list[k]
 
-        guess = network.forward_propagation(vector)
+        names = []
 
-        max_index = 0
-        max_value = guess[0, 0]
+        for network in networks:
+            guess = network.forward_propagation(vector)
 
-        for k in range(len(loaded_labels)):
-            if guess[k, 0] > max_value:
-                max_index = k
-                max_value = guess[k, 0]
+            max_index = 0
+            max_value = guess[0, 0]
 
-        if max_value < 0.3:
-            labels.append(LABEL_UNKNOWN)
+            for k in range(len(loaded_labels)):
+                if guess[k, 0] > max_value:
+                    max_index = k
+                    max_value = guess[k, 0]
+
+            names.append(loaded_labels[max_index])
+
+        counter = {}
+
+        for name in names:
+            if name not in counter:
+                counter[name] = 1
+            else:
+                counter[name] += 1
+
+        max = 0
+        label = ""
+
+        for name in counter:
+            if counter[name] > max:
+                max = counter[name]
+                label = name
+
+        if max >= 0.8 * len(files):
+            print(label + ":" + max)
+            labels.append(label)
         else:
-            labels.append(loaded_labels[max_index])
-
-            cv2.imwrite("../database/images/pred/" + loaded_labels[max_index] + str(random.uniform(0, 1000)) + ".png", image)
-
-
+            labels.append(LABEL_UNKNOWN)
 
     return labels
 
 
-network = load_network(PATH_NETWORK)
-loaded_labels = load_labels()
+files = os.listdir(PATH_NETWORK)
 
-print(loaded_labels)
-print(network.layers)
+networks = [load_network(PATH_NETWORK + files[k]) for k in range(len(files))]
+loaded_labels = load_labels()
