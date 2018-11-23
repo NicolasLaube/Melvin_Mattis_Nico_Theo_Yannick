@@ -81,7 +81,7 @@ def create_vector_database(database_path, image_folder, xml_path, separator="#;,
         for face in to_convert:
             images[label].append(face)
 
-            cv2.imwrite("../database/images/pred/" + label + str(random.uniform(0, 1000)) + ".png", face)
+            cv2.imwrite("P:/coding_weeks/machine_learning/repo/database/images/pred/" + label + str(random.uniform(0, 1000)) + ".png", face)
 
     write = ""
 
@@ -247,8 +247,8 @@ def create_sample_data(database_path):
 
 
 def test_network_vector(network):
-    test_images = load_vector_database("../database/test_database.vdb")
-    known_images = load_vector_database("../database/training_database.vdb")
+    test_images = load_vector_database("P:/coding_weeks/machine_learning/repo/database/test_database.vdb")
+    known_images = load_vector_database("P:/coding_weeks/machine_learning/repo/database/test_database.vdb")
 
     known_labels = []
 
@@ -286,33 +286,62 @@ def test_network_vector(network):
 
                 print("GUESSED {} \t EXPECTED {} \t ACCURACY {} \t TRUSTED {}".format(known_labels[max_index], label, str(100.0 * count / tries)[:5], str(100.0 * max_value)[:5]))
 
+    return count / tries
+
+
+def pick_best_network(network_folder):
+    """
+    Tests all the networks of the folder
+    :param network_folder: the path to the network folder
+    :return: the name of the best network
+    """
+
+    file_names = os.listdir(network_folder + "network_versions/")
+
+    max_accuracy = 0
+    best_network = ""
+
+    for file_name in file_names:
+        network = load_network(network_folder + "network_versions/" + file_name)
+        accuracy = test_network_vector(network)
+
+        if accuracy > max_accuracy:
+            max_accuracy = accuracy
+            best_network = file_name
+
+    return best_network
+
 
 should_plot_cost_function = False
 should_create_database_test = False
 should_create_database_train = False
-should_train_network = True
+should_train_network = False
 should_test_network_vector = False
+should_pick_network = False
 should_json = False
 
 if should_plot_cost_function:
-    plot_cost_function("../database/networks/")
+    plot_cost_function("P:/coding_weeks/machine_learning/repo/database/networks/network_128_16_4/")
 
 if should_create_database_test:
-    create_vector_database("../database/linkcs_database.vdb", "../database/images_linkCS_killer/", "../database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("P:/coding_weeks/machine_learning/repo/database/linkcs_database.vdb", "P:/coding_weeks/machine_learning/repo/database/images_linkCS_killer/", "P:/coding_weeks/machine_learning/repo/database/xml/haarcascade_frontalface_default.xml")
 
 if should_create_database_train:
-    create_vector_database("../database/training_database.vdb", "../database/images/training/", "../database/xml/haarcascade_frontalface_default.xml")
-    create_vector_database("../database/training_database_double.vdb", "../database/images/training_double/", "../database/xml/haarcascade_frontalface_default.xml")
-    create_vector_database("../database/training_database_triple.vdb", "../database/images/training_triple/", "../database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("P:/coding_weeks/machine_learning/repo/database/training_database.vdb", "P:/coding_weeks/machine_learning/repo/database/images/training/", "P:/coding_weeks/machine_learning/repo/database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("P:/coding_weeks/machine_learning/repo/database/training_database_double.vdb", "P:/coding_weeks/machine_learning/repo/database/images/training_double/", "P:/coding_weeks/machine_learning/repo/database/xml/haarcascade_frontalface_default.xml")
+    create_vector_database("P:/coding_weeks/machine_learning/repo/database/training_database_triple.vdb", "P:/coding_weeks/machine_learning/repo/database/images/training_triple/", "P:/coding_weeks/machine_learning/repo/database/xml/haarcascade_frontalface_default.xml")
 
 if should_train_network:
-    train_network("../database/networks/", [2048, 128, 16, 155], create_sample_data("../database/linkcs_database.vdb"))
+    train_network("P:/coding_weeks/machine_learning/repo/database/networks/network_128_128_4/", [2048, 128, 128, 5], create_sample_data("P:/coding_weeks/machine_learning/repo/database/test_database.vdb"))
 
 if should_test_network_vector:
-    test_network_vector(load_network("../database/trained_networks/network_2048_128_16_4_3.nn"))
+    test_network_vector(load_network("P:/coding_weeks/machine_learning/repo/database/trained_networks/network_2048_128_16_4_3.nn"))
+
+if should_pick_network:
+    print(pick_best_network("P:/coding_weeks/machine_learning/repo/database/networks/network_128_16_4_tpl/"))
 
 if should_json:
-    with open("../database/LinkCS.json", "r") as file:
+    with open("P:/coding_weeks/machine_learning/repo/database/LinkCS.json", "r") as file:
         users = json.load(file)
     print(len(users))
 
@@ -334,4 +363,4 @@ if should_json:
             resp = urllib.request.urlopen(user["ctiPhotoURI"])
             image = numpy.asarray(bytearray(resp.read()), dtype="uint8")
             image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-            cv2.imwrite("../database/images_linkCS_killer/" + name + ".png", image)
+            cv2.imwrite("P:/coding_weeks/machine_learning/repo/database/images_linkCS_killer/" + name + ".png", image)
