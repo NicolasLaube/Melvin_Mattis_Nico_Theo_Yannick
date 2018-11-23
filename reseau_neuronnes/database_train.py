@@ -306,7 +306,7 @@ if should_create_database_train:
     create_vector_database("../database/training_database_triple.vdb", "../database/images/training_triple/", "../database/xml/haarcascade_frontalface_default.xml")
 
 if should_train_network:
-    train_network("../database/networks/", [2048, 128, 16, 155], create_sample_data("../database/linkcs_database.vdb"))
+    train_network("../database/networks/network_256_256_155/", [2048, 256, 256, 155], create_sample_data("../database/linkcs_database.vdb"))
 
 if should_test_network_vector:
     test_network_vector(load_network("../database/trained_networks/network_2048_128_16_4_3.nn"))
